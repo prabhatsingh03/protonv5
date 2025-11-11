@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROTON - Charts</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 2rem;
+            height: 2rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        .chart-container canvas {
+            max-height: 100%;
+        }
+
+        /* Ensure non-mobile chart containers have ample height */
+        .mobile-chart-container {
+            height: 460px; /* desktop/tablet default height to prevent vertical shrink */
+            width: 100%;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .chart-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chart-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4, #10b981);
+            background-size: 300% 300%;
+            animation: gradientShift 6s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Mobile-specific chart adjustments */
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 340px; /* increased from 280px */
+                margin-bottom: 1.5rem;
+                width: 100%;
+                overflow: hidden;
+            }
+            
+            .mobile-chart-container {
+                height: 320px !important; /* increased from 260px */
+                width: 100% !important;
+                position: relative;
+                overflow: hidden;
+                padding: 15px;
+                border-radius: 12px;
+            }
+
+            .chart-card {
+                border-radius: 16px;
+                padding: 15px;
+            }
+
+            .chart-card::before {
+                height: 3px;
+            }
+            
+            .mobile-chart-container canvas {
+                max-height: 100% !important;
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+            
+            /* Adjust tooltip positioning for mobile */
+            .chartjs-tooltip {
+                font-size: 11px !important;
+                max-width: 180px !important;
+                word-wrap: break-word !important;
+                z-index: 1000 !important;
+                pointer-events: none !important;
+            }
+            
+            /* Better spacing for mobile */
+            .mobile-chart-wrapper {
+                margin-bottom: 2.5rem;
+                width: 100%;
+                overflow: hidden;
+            }
+            
+            /* Force single column layout on mobile */
+            .mobile-grid {
+                display: block !important;
+            }
+            
+            .mobile-grid > div {
+                width: 100% !important;
+                margin-bottom: 2rem !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .chart-container {
+                height: 300px; /* increased from 240px */
+                margin-bottom: 1.5rem;
+            }
+            
+            .mobile-chart-container {
+                height: 280px !important; /* increased from 220px */
+            }
+            
+            .mobile-chart-wrapper {
+                margin-bottom: 2rem;
+                padding: 0.75rem !important;
+            }
+            
+            /* Even smaller tooltips for very small screens */
+            .chartjs-tooltip {
+                font-size: 10px !important;
+                max-width: 150px !important;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .chart-container {
+                height: 260px; /* increased from 200px */
+            }
+            
+            .mobile-chart-container {
+                height: 240px !important; /* increased from 180px */
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <!-- AUTHENTICATION CHECK
+         JWT-based authentication required for this page.
+         
+         Required localStorage keys:
+         - 'access_token': JWT token for API authentication
+         - 'user_data': User profile data (name, email, role)
+         
+         Authentication Flow:
+         1. Verify presence of access_token and user_data
+         2. If missing, remove legacy 'aiProjectControlTowerAuth_v2' key
+         3. Redirect to landing page (/) for authentication
+         
+         Token Management:
+         - Access tokens are automatically refreshed via refreshAccessToken()
+         - Refresh token stored in 'refresh_token' localStorage key
+         - Failed refresh triggers full logout and redirect
+    -->
+    <!-- Auth Check Script -->
+    <script>
+        // Check if JWT token is expired
+        function isTokenExpired(token) {
+            if (!token) return true;
+            try {
+                let payload = token.split('.')[1];
+                payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+                while (payload.length % 4) {
+                    payload += '=';
+                }
+                const decoded = JSON.parse(atob(payload));
+                if (decoded.exp) {
+                    const expDate = new Date(decoded.exp * 1000);
+                    return expDate < new Date();
+                }
+                return false;
+            } catch {
+                return true;
+            }
+        }
+
+        // Show session timeout message and redirect
+        function handleSessionTimeout() {
+            // Clear all auth data
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('aiProjectControlTowerAuth_v2');
+            sessionStorage.removeItem('trial_banner_dismissed');
+            sessionStorage.removeItem('trial_banner_dismissed_at');
+            
+            // Show timeout message
+            document.body.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+                    <div class="text-center p-8 bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md">
+                        <div class="mb-6">
+                            <div class="mx-auto w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h2 class="text-2xl font-bold text-slate-800 mb-2">Session Timed Out</h2>
+                            <p class="text-slate-600 mb-4">Your session has expired for security reasons.</p>
+                            <p class="text-sm text-slate-500 mb-6">Redirecting to login...</p>
+                            <div class="flex justify-center">
+                                <div class="animate-spin h-8 w-8 border-4 border-slate-200 border-t-indigo-600 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Redirect after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        }
+
+        const accessToken = localStorage.getItem('access_token');
+        const userData = localStorage.getItem('user_data');
+        if (!accessToken || !userData) {
+            // Clear old auth format if it exists
+            localStorage.removeItem('aiProjectControlTowerAuth_v2');
+            window.location.href = '/';
+        } else if (isTokenExpired(accessToken)) {
+            // Token is expired - show timeout message
+            handleSessionTimeout();
+        }
+    </script>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel">
+               // --- SVG Icons ---
+        const SVGIcon = ({ size = 18, className = "", children }) => (React.createElement("svg", { className, xmlns: "http://www.w3.org/2000/svg", width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, children));
+        const LogOutIcon = (props) => React.createElement(SVGIcon, props, React.createElement("path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" }), React.createElement("polyline", { points: "16 17 21 12 16 7" }), React.createElement("line", { x1: "21", y1: "12", x2: "9", y2: "12" }));
+        const MenuIcon = (props) => React.createElement(SVGIcon, props, React.createElement("line", { x1: "3", y1: "12", x2: "21", y2: "12" }), React.createElement("line", { x1: "3", y1: "6", x2: "21", y2: "6" }), React.createElement("line", { x1: "3", y1: "18", x2: "21", y2: "18" }));
+        const BarChartIcon = (props) => React.createElement(SVGIcon, props, React.createElement("line", { x1: "12", x2: "12", y1: "20", y2: "10" }), React.createElement("line", { x1: "18", x2: "18", y1: "20", y2: "4" }), React.createElement("line", { x1: "6", x2: "6", y1: "20", y2: "16" }));
+        const LayoutDashboardIcon = (props) => React.createElement(SVGIcon, props, React.createElement("rect", { width: "7", height: "9", x: "3", y: "3", rx: "1" }), React.createElement("rect", { width: "7", height: "5", x: "14", y: "3", rx: "1" }), React.createElement("rect", { width: "7", height: "9", x: "14", y: "12", rx: "1" }), React.createElement("rect", { width: "7", height: "5", x: "3", y: "16", rx: "1" }));
+        const HomeIcon = (props) => React.createElement(SVGIcon, props, React.createElement("path", { d: "m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" }), React.createElement("polyline", { points: "9 22 9 12 15 12 15 22" }));
+
+        // --- Configuration & Constants ---
+        const APP_TITLE = "PROTON ";
+        const APP_TITLE2 = " by Simon India Limited";
+
+        // Helper function to base64url-decode JWT payloads
+        // Replaces base64url characters (- → +, _ → /) and adds padding (=)
+        function decodeBase64Url(base64Url) {
+            let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            while (base64.length % 4) {
+                base64 += '=';
+            }
+            return atob(base64);
+        }
+
+        // Session Timeout Handler Functions
+        // Check if JWT token is expired
+        function isTokenExpired(token) {
+            if (!token) return true;
+            try {
+                let payload = token.split('.')[1];
+                payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+                while (payload.length % 4) {
+                    payload += '=';
+                }
+                const decoded = JSON.parse(atob(payload));
+                if (decoded.exp) {
+                    const expDate = new Date(decoded.exp * 1000);
+                    return expDate < new Date();
+                }
+                return false;
+            } catch {
+                return true;
+            }
+        }
+
+        // Show session timeout message and redirect
+        function handleSessionTimeout() {
+            // Clear all auth data
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('aiProjectControlTowerAuth_v2');
+            sessionStorage.removeItem('trial_banner_dismissed');
+            sessionStorage.removeItem('trial_banner_dismissed_at');
+            
+            // Show timeout message
+            document.body.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+                    <div class="text-center p-8 bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md">
+                        <div class="mb-6">
+                            <div class="mx-auto w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h2 class="text-2xl font-bold text-slate-800 mb-2">Session Timed Out</h2>
+                            <p class="text-slate-600 mb-4">Your session has expired for security reasons.</p>
+                            <p class="text-sm text-slate-500 mb-6">Redirecting to login...</p>
+                            <div class="flex justify-center">
+                                <div class="animate-spin h-8 w-8 border-4 border-slate-200 border-t-indigo-600 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Redirect after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        }
+
+        // JWT Authentication Helper Functions
+        const refreshAccessToken = async () => {
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (!refreshToken) {
+                handleSessionTimeout();
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.access_token) {
+                        localStorage.setItem('access_token', data.access_token);
+                        return true;
+                    }
+                }
+                // Refresh failed - show session timeout
+                handleSessionTimeout();
+                return false;
+            } catch (error) {
+                // Refresh failed - show session timeout
+                handleSessionTimeout();
+                return false;
+            }
+        };
+
+        const makeAuthenticatedRequest = async (url, options = {}) => {
+            let accessToken = localStorage.getItem('access_token');
+            
+            // Check if token is expired before making request
+            if (isTokenExpired(accessToken)) {
+                const newToken = await refreshAccessToken();
+                if (!newToken || isTokenExpired(newToken)) {
+                    throw new Error('Session expired');
+                }
+                accessToken = localStorage.getItem('access_token');
+            }
+            
+            // Ensure headers object exists
+            if (!options.headers) {
+                options.headers = {};
+            }
+            
+            // Add Authorization header
+            options.headers['Authorization'] = 'Bearer ' + accessToken;
+            
+            // Make the request
+            let response = await fetch(url, options);
+            
+            // If 401, try to refresh token and retry once
+            if (response.status === 401) {
+                const refreshSuccess = await refreshAccessToken();
+                if (refreshSuccess) {
+                    const newAccessToken = localStorage.getItem('access_token');
+                    if (newAccessToken && !isTokenExpired(newAccessToken)) {
+                        options.headers['Authorization'] = 'Bearer ' + newAccessToken;
+                        response = await fetch(url, options);
+                    } else {
+                        throw new Error('Session expired');
+                    }
+                } else {
+                    throw new Error('Session expired');
+                }
+            }
+            
+            return response;
+        };
+
+        const LoadingSpinner = ({ message }) => {
+            return React.createElement("div", { className: "text-center py-10 bg-white shadow rounded-lg" },
+                React.createElement("div", { className: "flex items-center justify-center" },
+                    React.createElement("div", { className: "animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-sky-500" }),
+                    React.createElement("p", { className: "ml-4 text-lg text-slate-500" }, message || "Loading...")
+                )
+            );
+        };
+
+        const customDoughnutLabelsPlugin = {
+            id: 'customDoughnutLabels',
+            afterDraw(chart, args, options) {
+                const { ctx } = chart;
+                const { epcData } = options;
+                if (!epcData) return;
+                const meta = chart.getDatasetMeta(0);
+                if (!meta.data.length) return;
+                const categoryAngles = {};
+                meta.data.forEach((arc, index) => {
+                    const label = chart.data.labels[index];
+                    const mainCategory = label.split(' - ')[0];
+                    if (!categoryAngles[mainCategory]) {
+                        categoryAngles[mainCategory] = { startAngle: arc.startAngle, endAngle: arc.endAngle, weightage: epcData[mainCategory]?.weightage || 0 };
+                    } else {
+                        categoryAngles[mainCategory].endAngle = arc.endAngle;
+                    }
+                });
+                ctx.save();
+                const isMobile = window.innerWidth < 768;
+                const isSmallMobile = window.innerWidth < 480;
+                ctx.font = `600 ${isSmallMobile ? '8' : isMobile ? '9' : '11'}px Inter`;
+                ctx.fillStyle = '#475569';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const outerRadius = meta.data[0].outerRadius;
+                const labelRadius = outerRadius + (isSmallMobile ? 12 : isMobile ? 15 : 20);
+                for (const categoryName in categoryAngles) {
+                    const category = categoryAngles[categoryName];
+                    const totalAngle = category.endAngle - category.startAngle;
+                    if (category.weightage > 0 && totalAngle > 0.15) {
+                        const midAngle = category.startAngle + totalAngle / 2;
+                        const x = chart.width / 2 + Math.cos(midAngle) * labelRadius;
+                        let y = chart.height / 2 + Math.sin(midAngle) * labelRadius;
+                        if (midAngle > Math.PI * 0.4 && midAngle < Math.PI * 0.6) { y += 5; }
+                        if (midAngle < -Math.PI * 0.4 && midAngle > -Math.PI * 0.6) { y -= 5; }
+                        ctx.fillText(`${categoryName} (${category.weightage}%)`, x, y);
+                    }
+                }
+                ctx.restore();
+            }
+        };
+        Chart.register(customDoughnutLabelsPlugin);
+
+        // Custom plugin to draw percentage labels inside bars (responsive)
+        const barValueLabelsPlugin = {
+            id: 'barValueLabels',
+            afterDatasetsDraw(chart, args, pluginOptions) {
+                const { ctx, chartArea, scales } = chart;
+                const isMobile = window.innerWidth < 768;
+                const isSmallMobile = window.innerWidth < 480;
+                const isHorizontal = chart.options.indexAxis === 'y';
+                
+                // Use smaller font for horizontal bars
+                const fontSize = isHorizontal 
+                    ? (isSmallMobile ? 8 : isMobile ? 9 : 10)
+                    : (isSmallMobile ? 10 : isMobile ? 11 : 12);
+                const fontWeight = '600';
+                const fontFamily = 'Inter';
+                ctx.save();
+                ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+                ctx.fillStyle = pluginOptions?.color || 'rgba(255, 255, 255, 0.9)'; // Subtle white
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                chart.data.datasets.forEach((dataset, datasetIndex) => {
+                    const meta = chart.getDatasetMeta(datasetIndex);
+                    if (!meta || meta.type !== 'bar') return;
+                    meta.data.forEach((barElement, index) => {
+                        const value = dataset.data[index];
+                        if (value == null) return;
+                        const props = barElement.getProps(['x', 'y', 'base'], true);
+                        const x = props.x;
+                        const y = props.y;
+                        const base = props.base;
+                        const label = `${Number(value).toFixed(0)}%`;
+                        
+                        if (isHorizontal) {
+                            // For horizontal bars, calculate the middle horizontally
+                            const barWidth = Math.abs(x - base);
+                            const textX = base + (x - base) / 2;
+                            
+                            // Only show label if bar is wide enough
+                            if (barWidth > fontSize * 2) {
+                                ctx.fillText(label, textX, y);
+                            }
+                        } else {
+                            // For vertical bars, calculate the middle vertically
+                            const barHeight = Math.abs(y - base);
+                            const textY = y + (base - y) / 2;
+                            
+                            // Only show label if bar is tall enough
+                            if (barHeight > fontSize + 4) {
+                                ctx.fillText(label, x, textY);
+                            }
+                        }
+                    });
+                });
+                ctx.restore();
+            }
+        };
+
+        Chart.register(barValueLabelsPlugin);
+
+        // Download Button Component
+        const DownloadButton = ({ chartRef, chartTitle }) => {
+            const { useState } = React;
+            const [showDropdown, setShowDropdown] = useState(false);
+
+            const downloadChart = (format) => {
+                if (!chartRef.current || !chartRef.current.chart) return;
+                
+                const chart = chartRef.current.chart;
+                const fileName = `${chartTitle.replace(/\s+/g, '_').toLowerCase()}_chart`;
+                
+                if (format === 'png') {
+                    const url = chart.toBase64Image('image/png', 1.0);
+                    const link = document.createElement('a');
+                    link.download = `${fileName}.png`;
+                    link.href = url;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else if (format === 'svg') {
+                    // For SVG, we'll create a simple SVG version
+                    // Note: Chart.js doesn't natively support SVG export, so we'll use canvas conversion
+                    const canvas = chart.canvas;
+                    const svgString = `
+                        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+                             width="${canvas.width}" height="${canvas.height}">
+                            <foreignObject width="100%" height="100%">
+                                <div xmlns="http://www.w3.org/1999/xhtml">
+                                    <img src="${chart.toBase64Image('image/png', 1.0)}" width="${canvas.width}" height="${canvas.height}"/>
+                                </div>
+                            </foreignObject>
+                        </svg>
+                    `;
+                    const blob = new Blob([svgString], { type: 'image/svg+xml' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.download = `${fileName}.svg`;
+                    link.href = url;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                }
+                setShowDropdown(false);
+            };
+
+            return React.createElement('div', { 
+                className: 'absolute top-2 right-2 z-10',
+                onMouseEnter: () => setShowDropdown(true),
+                onMouseLeave: () => setShowDropdown(false)
+            },
+                React.createElement('button', {
+                    className: 'p-2 bg-white/90 hover:bg-white rounded-lg shadow-md transition-all duration-200 hover:shadow-lg',
+                    title: 'Download Chart'
+                },
+                    React.createElement('svg', {
+                        className: 'w-5 h-5 text-slate-600',
+                        fill: 'none',
+                        stroke: 'currentColor',
+                        viewBox: '0 0 24 24'
+                    },
+                        React.createElement('path', {
+                            strokeLinecap: 'round',
+                            strokeLinejoin: 'round',
+                            strokeWidth: 2,
+                            d: 'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+                        })
+                    )
+                ),
+                showDropdown && React.createElement('div', {
+                    className: 'absolute top-full right-0 mt-1 bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden min-w-[120px]'
+                },
+                    React.createElement('button', {
+                        className: 'w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors',
+                        onClick: () => downloadChart('png')
+                    }, 'Download PNG'),
+                    React.createElement('button', {
+                        className: 'w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors',
+                        onClick: () => downloadChart('svg')
+                    }, 'Download SVG')
+                )
+            );
+        };
+
+        const ChartsPage = ({ projectName, chartData, isLoading, error, onNavigateBack }) => {
+            const { useEffect, useRef } = React;
+            const statusChartRef = useRef(null);
+            const delayChartRef = useRef(null);
+            const progressCurveChartRef = useRef(null);
+            const engineeringDisciplineChartRef = useRef(null);
+            const epcProgressChartRef = useRef(null);
+
+            useEffect(() => {
+                if (isLoading || error || !chartData) return;
+
+                const chartInstances = [];
+                
+                // Handle window resize for responsive updates
+                const handleResize = () => {
+                    chartInstances.forEach(chart => {
+                        if (chart && typeof chart.resize === 'function') {
+                            chart.resize();
+                        }
+                    });
+                };
+                
+                window.addEventListener('resize', handleResize);
+
+                if (statusChartRef.current && chartData.epc_split_completion_data && Object.keys(chartData.epc_split_completion_data).length > 0) {
+                    const epcData = chartData.epc_split_completion_data;
+                    const categoryOrder = ["Engineering", "Procurement", "Construction"];
+                    const chartLabels = [], chartDataPoints = [], chartColors = [], chartBorderColors = [];
+                    const whiteBorder = '#ffffff';
+                    const categoryBaseColors = { 
+                        "Engineering": '#3b82f6', 
+                        "Procurement": '#f59e0b', 
+                        "Construction": '#10b981' 
+                    };
+                    const categoryGradients = {
+                        "Engineering": ['#3b82f6', '#1d4ed8'],
+                        "Procurement": ['#f59e0b', '#d97706'], 
+                        "Construction": ['#10b981', '#059669']
+                    };
+                    function hexToRgba(hex, alpha) { let r = 0, g = 0, b = 0; if (hex.length == 4) { r = "0x" + hex[1] + hex[1]; g = "0x" + hex[2] + hex[2]; b = "0x" + hex[3] + hex[3]; } else if (hex.length == 7) { r = "0x" + hex[1] + hex[2]; g = "0x" + hex[3] + hex[4]; b = "0x" + hex[5] + hex[6]; } return `rgba(${+r},${+g},${+b},${alpha})`; }
+                    categoryOrder.forEach(label => {
+                        if (epcData[label]) {
+                            const category = epcData[label];
+                            const progress = category.progress || 0;
+                            const totalWeight = category.weightage;
+                            const completedWeightPortion = totalWeight * (progress / 100);
+                            const notCompletedWeightPortion = totalWeight - completedWeightPortion;
+                            const mainColor = categoryBaseColors[label];
+                            const lightColor = hexToRgba(mainColor, 0.4);
+                            if (completedWeightPortion > 0) { chartLabels.push(`${label} - Completed`); chartDataPoints.push(completedWeightPortion); chartColors.push(mainColor); chartBorderColors.push(whiteBorder); }
+                            if (notCompletedWeightPortion > 0) { chartLabels.push(`${label} - In Progress or Not started`); chartDataPoints.push(notCompletedWeightPortion); chartColors.push(lightColor); chartBorderColors.push(completedWeightPortion > 0 ? 'transparent' : whiteBorder); }
+                        }
+                    });
+                    const statusCtx = statusChartRef.current.getContext('2d');
+                    if (statusChartRef.current.chart) statusChartRef.current.chart.destroy();
+                    const statusChart = new Chart(statusCtx, {
+                        type: 'doughnut',
+                        data: { 
+                            labels: chartLabels, 
+                            datasets: [{ 
+                                label: 'Task Status by Weightage', 
+                                data: chartDataPoints, 
+                                backgroundColor: chartColors, 
+                                borderColor: chartBorderColors, 
+                                borderWidth: 3, 
+                                hoverOffset: 8,
+                                hoverBorderWidth: 4,
+                                borderRadius: 6,
+                                spacing: 2
+                            }] 
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false, 
+                            cutout: window.innerWidth < 768 ? '65%' : '75%',
+                            animation: {
+                                animateRotate: true,
+                                animateScale: true,
+                                duration: 2000,
+                                easing: 'easeInOutQuart'
+                            },
+                            plugins: { 
+                                customDoughnutLabels: { epcData: epcData }, 
+                                legend: { 
+                                    position: 'bottom', 
+                                    labels: { 
+                                        generateLabels: (chart) => categoryOrder.filter(label => epcData[label]).map((label) => ({ 
+                                            text: label, 
+                                            fillStyle: categoryBaseColors[label], 
+                                            strokeStyle: categoryBaseColors[label], 
+                                            hidden: false, 
+                                            index: categoryOrder.indexOf(label) 
+                                        })), 
+                                        padding: window.innerWidth < 768 ? 8 : 25,
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 11 : 14, 
+                                            weight: '600',
+                                            family: 'Inter'
+                                        },
+                                        boxWidth: window.innerWidth < 768 ? 14 : 18,
+                                        boxHeight: window.innerWidth < 768 ? 14 : 18,
+                                        borderRadius: 4,
+                                        usePointStyle: true,
+                                        pointStyle: 'circle'
+                                    } 
+                                }, 
+                                title: { 
+                                    display: true, 
+                                    text: 'Project Completion Status by Weightage', 
+                                    font: { 
+                                        size: window.innerWidth < 768 ? 14 : 20, 
+                                        weight: '700',
+                                        family: 'Inter'
+                                    }, 
+                                    padding: window.innerWidth < 768 ? 8 : 20,
+                                    color: '#1e293b'
+                                }, 
+                                tooltip: { 
+                                    enabled: true,
+                                    position: 'nearest',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                    titleColor: '#fff',
+                                    bodyColor: '#fff',
+                                    borderColor: '#fff',
+                                    borderWidth: 1,
+                                    cornerRadius: 4,
+                                    displayColors: true,
+                                    titleFont: { size: window.innerWidth < 768 ? 10 : 12 },
+                                    bodyFont: { size: window.innerWidth < 768 ? 9 : 11 },
+                                    padding: window.innerWidth < 768 ? 6 : 12,
+                                    xAlign: 'center',
+                                    yAlign: 'top',
+                                    callbacks: { 
+                                        label: (context) => { 
+                                            const originalLabel = context.label || ''; 
+                                            const mainCategory = originalLabel.split(' - ')[0]; 
+                                            if (epcData[mainCategory]) { 
+                                                const categoryProgress = epcData[mainCategory].progress || 0; 
+                                                if (originalLabel.includes('In Progress or Not started')) { 
+                                                    const remainingProgress = 100 - categoryProgress; 
+                                                    return `${mainCategory}: ${remainingProgress.toFixed(0)}%`; 
+                                                } else { 
+                                                    return `${mainCategory}: ${categoryProgress}%`; 
+                                                } 
+                                            } 
+                                            const value = context.raw; 
+                                            return `${context.label}: ${value.toFixed(2)}%`; 
+                                        } 
+                                    } 
+                                } 
+                            }, 
+                            layout: { padding: window.innerWidth < 768 ? 5 : 15 } 
+                        }
+                    });
+                    statusChartRef.current.chart = statusChart;
+                    chartInstances.push(statusChart);
+                }
+
+                if (progressCurveChartRef.current && chartData.s_curve_data && chartData.s_curve_data.dates && chartData.s_curve_data.dates.length > 0) {
+                    const progressCtx = progressCurveChartRef.current.getContext('2d');
+                    if (progressCurveChartRef.current.chart) progressCurveChartRef.current.chart.destroy();
+                    
+                    // Create enhanced gradients for modern look
+                    const plannedGradient = progressCtx.createLinearGradient(0, 0, 0, 400);
+                    plannedGradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+                    plannedGradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.25)');
+                    plannedGradient.addColorStop(1, 'rgba(147, 197, 253, 0.1)');
+                    
+                    const actualGradient = progressCtx.createLinearGradient(0, 0, 0, 400);
+                    actualGradient.addColorStop(0, 'rgba(5, 150, 105, 0.4)');
+                    actualGradient.addColorStop(0.5, 'rgba(16, 185, 129, 0.25)');
+                    actualGradient.addColorStop(1, 'rgba(110, 231, 183, 0.1)');
+                    
+                    const progressChart = new Chart(progressCtx, {
+                        type: 'line',
+                        data: { 
+                            labels: chartData.s_curve_data.dates, 
+                            datasets: [
+                                { 
+                                    label: 'Planned Progress (%)', 
+                                    data: chartData.s_curve_data.planned_progress, 
+                                    borderColor: '#6366f1', 
+                                    backgroundColor: plannedGradient, 
+                                    fill: true, 
+                                    tension: 0.45, 
+                                    pointRadius: 0,
+                                    pointHoverRadius: 6,
+                                    pointBackgroundColor: '#6366f1',
+                                    pointBorderColor: '#ffffff',
+                                    pointBorderWidth: 2,
+                                    borderWidth: 4,
+                                    pointHoverBackgroundColor: '#4f46e5',
+                                    pointHoverBorderColor: window.innerWidth < 768 ? '#4f46e5' : '#ffffff',
+                                    pointHoverBorderWidth: window.innerWidth < 768 ? 2 : 4,
+                                    borderDash: [],
+                                    order: 2
+                                }, 
+                                { 
+                                    label: 'Actual Progress (%)', 
+                                    data: chartData.s_curve_data.actual_progress, 
+                                    borderColor: '#059669', 
+                                    backgroundColor: actualGradient,
+                                    fill: true, 
+                                    tension: 0.45, 
+                                    pointRadius: 0,
+                                    pointHoverRadius: 6,
+                                    pointBackgroundColor: '#059669',
+                                    pointBorderColor: '#ffffff',
+                                    pointBorderWidth: 2,
+                                    borderWidth: 4,
+                                    pointHoverBackgroundColor: '#047857',
+                                    pointHoverBorderColor: window.innerWidth < 768 ? '#047857' : '#ffffff',
+                                    pointHoverBorderWidth: window.innerWidth < 768 ? 2 : 4,
+                                    borderDash: [],
+                                    order: 1
+                                }
+                            ] 
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            animation: {
+                                duration: 2500,
+                                easing: 'easeInOutQuart'
+                            },
+                            interaction: {
+                                intersect: false,
+                                mode: 'index'
+                            },
+                            elements: {
+                                line: {
+                                    borderJoinStyle: 'round',
+                                    borderCapStyle: 'round'
+                                },
+                                point: {
+                                    hoverBorderWidth: 4
+                                }
+                            },
+                            plugins: { 
+                                legend: { 
+                                    position: 'top', 
+                                    padding: window.innerWidth < 768 ? 8 : 25,
+                                    labels: {
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 11 : 14,
+                                            weight: '600',
+                                            family: 'Inter'
+                                        },
+                                        boxWidth: window.innerWidth < 768 ? 14 : 18,
+                                        boxHeight: window.innerWidth < 768 ? 14 : 18,
+                                        borderRadius: 4,
+                                        usePointStyle: true,
+                                        pointStyle: 'circle'
+                                    }
+                                }, 
+                                title: { 
+                                    display: true, 
+                                    text: 'Planned vs Actual Progress (S-Curve)', 
+                                    font: { 
+                                        size: window.innerWidth < 768 ? 14 : 20, 
+                                        weight: '700',
+                                        family: 'Inter'
+                                    }, 
+                                    padding: window.innerWidth < 768 ? 8 : 20,
+                                    color: '#1e293b'
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    position: 'nearest',
+                                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                    titleColor: '#f8fafc',
+                                    bodyColor: '#e2e8f0',
+                                    borderColor: 'rgba(148, 163, 184, 0.3)',
+                                    borderWidth: 1,
+                                    cornerRadius: 8,
+                                    displayColors: true,
+                                    titleFont: { 
+                                        size: window.innerWidth < 768 ? 11 : 13,
+                                        weight: '600',
+                                        family: 'Inter'
+                                    },
+                                    bodyFont: { 
+                                        size: window.innerWidth < 768 ? 10 : 12,
+                                        family: 'Inter'
+                                    },
+                                    padding: window.innerWidth < 768 ? 8 : 16,
+                                    xAlign: 'center',
+                                    yAlign: 'top',
+                                    titleSpacing: 4,
+                                    bodySpacing: 6,
+                                    footerSpacing: 4,
+                                    caretSize: 6,
+                                    caretPadding: 8,
+                                    callbacks: {
+                                        label: function(context) {
+                                            const value = context.parsed.y;
+                                            const label = context.dataset.label;
+                                            return `${label}: ${value.toFixed(1)}%`;
+                                        },
+                                        labelColor: function(context) {
+                                            return {
+                                                borderColor: context.dataset.borderColor,
+                                                backgroundColor: context.dataset.borderColor,
+                                                borderWidth: 2,
+                                                borderRadius: 4
+                                            };
+                                        }
+                                    }
+                                }
+                            }, 
+                            scales: { 
+                                y: { 
+                                    beginAtZero: true, 
+                                    max: 100, 
+                                    title: { 
+                                        display: true, 
+                                        text: 'Cumulative Progress (%)',
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 11 : 14,
+                                            weight: '600',
+                                            family: 'Inter'
+                                        },
+                                        color: '#1e293b'
+                                    }, 
+                                    grid: { 
+                                        display: true,
+                                        color: 'rgba(148, 163, 184, 0.15)',
+                                        drawBorder: false,
+                                        lineWidth: 1
+                                    },
+                                    ticks: { 
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 10 : 12,
+                                            family: 'Inter'
+                                        },
+                                        color: '#64748b',
+                                        maxTicksLimit: window.innerWidth < 768 ? 6 : 8,
+                                        padding: 8,
+                                        callback: function(value) {
+                                            return value + '%';
+                                        }
+                                    },
+                                    border: {
+                                        display: false
+                                    }
+                                }, 
+                                x: { 
+                                    title: { 
+                                        display: true, 
+                                        text: 'Project Timeline',
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 11 : 14,
+                                            weight: '600',
+                                            family: 'Inter'
+                                        },
+                                        color: '#1e293b'
+                                    }, 
+                                    grid: { 
+                                        display: true,
+                                        color: 'rgba(148, 163, 184, 0.1)',
+                                        drawBorder: false,
+                                        lineWidth: 1
+                                    },
+                                    ticks: { 
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 9 : 11,
+                                            family: 'Inter'
+                                        },
+                                        color: '#64748b',
+                                        maxRotation: window.innerWidth < 768 ? 45 : 0,
+                                        minRotation: window.innerWidth < 768 ? 45 : 0,
+                                        maxTicksLimit: window.innerWidth < 768 ? 6 : 12,
+                                        padding: 8
+                                    },
+                                    border: {
+                                        display: false
+                                    }
+                                } 
+                            }, 
+                            layout: { padding: window.innerWidth < 768 ? 5 : 15 } 
+                        }
+                    });
+                    progressCurveChartRef.current.chart = progressChart;
+                    chartInstances.push(progressChart);
+                }
+
+                if (delayChartRef.current && chartData.total_delays) {
+                    const delayCtx = delayChartRef.current.getContext('2d');
+                    const actualDelays = chartData.total_delays;
+                    const plannedDelays = { weather: 10, contractor: 0, client: 0 };
+                    const greenColor = { bg: '#10b981', border: '#059669' };
+                    const redColor = { bg: '#ef4444', border: '#dc2626' };
+                    const actualDelayData = [], plannedDelayData = [];
+                    const labels = ['Weather', 'Contractor', 'Client'];
+                    labels.forEach(type => { actualDelayData.push(actualDelays[type.toLowerCase()] || 0); plannedDelayData.push(plannedDelays[type.toLowerCase()] || 0); });
+                    const actualBgColors = actualDelayData.map((actual, index) => actual <= plannedDelayData[index] ? greenColor.bg : redColor.bg);
+                    const actualBorderColors = actualDelayData.map((actual, index) => actual <= plannedDelayData[index] ? greenColor.border : redColor.border);
+                    
+                    // Create gradients for planned delays
+                    const plannedGradient = delayCtx.createLinearGradient(0, 0, 0, 400);
+                    plannedGradient.addColorStop(0, '#3b82f6');
+                    plannedGradient.addColorStop(1, '#1d4ed8');
+                    
+                    if (delayChartRef.current.chart) delayChartRef.current.chart.destroy();
+                    const delayChart = new Chart(delayCtx, {
+                        type: 'bar',
+                        data: { 
+                            labels: labels, 
+                            datasets: [
+                                { 
+                                    label: 'Planned Delay Days', 
+                                    data: plannedDelayData, 
+                                    backgroundColor: plannedGradient, 
+                                    borderColor: '#1d4ed8', 
+                                    borderWidth: 2,
+                                    borderRadius: 6,
+                                    borderSkipped: false,
+                                    hoverBackgroundColor: '#1e40af',
+                                    hoverBorderColor: '#1e3a8a',
+                                    hoverBorderWidth: 3
+                                }, 
+                                { 
+                                    label: 'Actual Delay Days', 
+                                    data: actualDelayData, 
+                                    backgroundColor: actualBgColors, 
+                                    borderColor: actualBorderColors, 
+                                    borderWidth: 2,
+                                    borderRadius: 6,
+                                    borderSkipped: false,
+                                    hoverBorderWidth: 3
+                                }
+                            ] 
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            animation: {
+                                duration: 1800,
+                                easing: 'easeInOutQuart'
+                            },
+                            scales: { 
+                                y: { 
+                                    beginAtZero: true, 
+                                    title: { 
+                                        display: true, 
+                                        text: 'Total Days',
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 11 : 14,
+                                            weight: '600',
+                                            family: 'Inter'
+                                        },
+                                        color: '#1e293b'
+                                    }, 
+                                    grid: { 
+                                        display: true,
+                                        color: 'rgba(148, 163, 184, 0.1)',
+                                        drawBorder: false
+                                    },
+                                    ticks: { 
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 10 : 12,
+                                            family: 'Inter'
+                                        },
+                                        color: '#64748b',
+                                        maxTicksLimit: window.innerWidth < 768 ? 5 : 10
+                                    },
+                                    border: {
+                                        display: false
+                                    }
+                                }, 
+                                x: { 
+                                    grid: { display: false }, 
+                                    categoryPercentage: window.innerWidth < 768 ? 0.8 : 0.7, 
+                                    barPercentage: window.innerWidth < 768 ? 0.9 : 0.8,
+                                    ticks: { 
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 10 : 12,
+                                            family: 'Inter'
+                                        },
+                                        color: '#64748b',
+                                        maxRotation: 0
+                                    },
+                                    border: {
+                                        display: false
+                                    }
+                                } 
+                            }, 
+                            plugins: { 
+                                legend: { 
+                                    display: true, 
+                                    position: 'top', 
+                                    padding: window.innerWidth < 768 ? 8 : 25,
+                                    labels: {
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 11 : 14,
+                                            weight: '600',
+                                            family: 'Inter'
+                                        },
+                                        boxWidth: window.innerWidth < 768 ? 14 : 18,
+                                        boxHeight: window.innerWidth < 768 ? 14 : 18,
+                                        borderRadius: 4,
+                                        usePointStyle: true,
+                                        pointStyle: 'rect'
+                                    }
+                                }, 
+                                title: { 
+                                    display: true, 
+                                    text: 'Actual vs. Planned Project Delays', 
+                                    font: { 
+                                        size: window.innerWidth < 768 ? 14 : 20, 
+                                        weight: '700',
+                                        family: 'Inter'
+                                    }, 
+                                    padding: window.innerWidth < 768 ? 8 : 20,
+                                    color: '#1e293b'
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    position: 'nearest',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                    titleColor: '#fff',
+                                    bodyColor: '#fff',
+                                    borderColor: '#fff',
+                                    borderWidth: 1,
+                                    cornerRadius: 4,
+                                    displayColors: true,
+                                    titleFont: { size: window.innerWidth < 768 ? 10 : 12 },
+                                    bodyFont: { size: window.innerWidth < 768 ? 9 : 11 },
+                                    padding: window.innerWidth < 768 ? 6 : 12,
+                                    xAlign: 'center',
+                                    yAlign: 'top'
+                                },
+                                barValueLabels: {
+                                    color: 'rgba(255, 255, 255, 0.9)'
+                                }
+                            }, 
+                            layout: { padding: window.innerWidth < 768 ? 5 : 15 } 
+                        }
+                    });
+                    delayChartRef.current.chart = delayChart;
+                    chartInstances.push(delayChart);
+                }
+
+                if (engineeringDisciplineChartRef.current && chartData.engineering_disciplines_data && Object.keys(chartData.engineering_disciplines_data).length > 0) {
+                    const disciplinesData = chartData.engineering_disciplines_data;
+                    const labels = Object.keys(disciplinesData);
+                    const progressValues = labels.map(label => disciplinesData[label].progress);
+                    const engineeringDisciplineCtx = engineeringDisciplineChartRef.current.getContext('2d');
+                    if (engineeringDisciplineChartRef.current.chart) engineeringDisciplineChartRef.current.chart.destroy();
+                    
+                    // Create gradient for bars
+                    const barGradient = engineeringDisciplineCtx.createLinearGradient(0, 0, 400, 0);
+                    barGradient.addColorStop(0, '#06b6d4');
+                    barGradient.addColorStop(0.5, '#0ea5e9');
+                    barGradient.addColorStop(1, '#0284c7');
+                    
+                    const engineeringDisciplineChart = new Chart(engineeringDisciplineCtx, {
+                        type: 'bar',
+                        data: { 
+                            labels: labels, 
+                            datasets: [{ 
+                                label: 'Progress (%)', 
+                                data: progressValues, 
+                                backgroundColor: barGradient,
+                                borderColor: '#0284c7', 
+                                borderWidth: 2, 
+                                borderRadius: 8,
+                                borderSkipped: false,
+                                barPercentage: 0.7, 
+                                categoryPercentage: 0.8,
+                                hoverBackgroundColor: '#0369a1',
+                                hoverBorderColor: '#075985',
+                                hoverBorderWidth: 3
+                            }] 
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false, 
+                            indexAxis: 'y',
+                            animation: {
+                                duration: 2000,
+                                easing: 'easeInOutQuart'
+                            },
+                            scales: { 
+                                x: { 
+                                    beginAtZero: true, 
+                                    max: 100, 
+                                    title: { 
+                                        display: true, 
+                                        text: 'Progress (%)',
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 11 : 14,
+                                            weight: '600',
+                                            family: 'Inter'
+                                        },
+                                        color: '#1e293b'
+                                    }, 
+                                    grid: { 
+                                        display: true,
+                                        color: 'rgba(148, 163, 184, 0.1)',
+                                        drawBorder: false
+                                    },
+                                    ticks: { 
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 10 : 12,
+                                            family: 'Inter'
+                                        },
+                                        color: '#64748b',
+                                        maxTicksLimit: window.innerWidth < 768 ? 6 : 10
+                                    },
+                                    border: {
+                                        display: false
+                                    }
+                                }, 
+                                y: { 
+                                    title: { 
+                                        display: true, 
+                                        text: 'Engineering Discipline',
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 11 : 14,
+                                            weight: '600',
+                                            family: 'Inter'
+                                        },
+                                        color: '#1e293b'
+                                    }, 
+                                    grid: { 
+                                        display: false
+                                    },
+                                    ticks: { 
+                                        font: { 
+                                            size: window.innerWidth < 768 ? 10 : 12,
+                                            family: 'Inter'
+                                        },
+                                        color: '#64748b'
+                                    },
+                                    border: {
+                                        display: false
+                                    }
+                                } 
+                            }, 
+                            plugins: { 
+                                legend: { display: false }, 
+                                title: { 
+                                    display: true, 
+                                    text: 'Engineering Progress by Discipline', 
+                                    font: { 
+                                        size: window.innerWidth < 768 ? 14 : 20, 
+                                        weight: '700',
+                                        family: 'Inter'
+                                    }, 
+                                    padding: window.innerWidth < 768 ? 8 : 20,
+                                    color: '#1e293b'
+                                }, 
+                                tooltip: { 
+                                    enabled: true,
+                                    position: 'nearest',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                    titleColor: '#fff',
+                                    bodyColor: '#fff',
+                                    borderColor: '#fff',
+                                    borderWidth: 1,
+                                    cornerRadius: 4,
+                                    displayColors: true,
+                                    titleFont: { size: window.innerWidth < 768 ? 10 : 12 },
+                                    bodyFont: { size: window.innerWidth < 768 ? 9 : 11 },
+                                    padding: window.innerWidth < 768 ? 6 : 12,
+                                    xAlign: 'center',
+                                    yAlign: 'top',
+                                    callbacks: { 
+                                        label: (context) => `${context.label}: ${context.raw}%` 
+                                    } 
+                                },
+                                barValueLabels: {
+                                    color: 'rgba(255, 255, 255, 0.9)'
+                                }
+                            }, 
+                            layout: { padding: window.innerWidth < 768 ? 5 : 15 } 
+                        }
+                    });
+                    engineeringDisciplineChartRef.current.chart = engineeringDisciplineChart;
+                    chartInstances.push(engineeringDisciplineChart);
+                }
+
+                // EPC Progress Chart (Planned vs Actual)
+                if (epcProgressChartRef.current && chartData.epc_split_completion_data && Object.keys(chartData.epc_split_completion_data).length > 0) {
+                    const epcData = chartData.epc_split_completion_data;
+                    const categories = ['Engineering', 'Procurement', 'Construction'];
+                    const actualProgress = categories.map(cat => epcData[cat]?.progress || 0);
+                    const plannedProgress = categories.map(cat => epcData[cat]?.planned_progress || 0);
+                    
+                    const epcCtx = epcProgressChartRef.current.getContext('2d');
+                    if (epcProgressChartRef.current.chart) epcProgressChartRef.current.chart.destroy();
+                    
+                    const epcProgressChart = new Chart(epcCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: categories,
+                            datasets: [
+                                {
+                                    label: 'Planned Progress (%)',
+                                    data: plannedProgress,
+                                    backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                                    borderColor: '#6366f1',
+                                    borderWidth: 2,
+                                    borderRadius: 6,
+                                    borderSkipped: false,
+                                    // Remove inter-bar gap while keeping same bar width: 2 * 0.8 * 0.7 / 2 = 0.56
+                                    barPercentage: 1.0,
+                                    categoryPercentage: 0.56,
+                                    hoverBackgroundColor: 'rgba(99, 102, 241, 0.9)',
+                                    hoverBorderColor: '#4f46e5',
+                                    hoverBorderWidth: 3
+                                },
+                                {
+                                    label: 'Actual Progress (%)',
+                                    data: actualProgress,
+                                    backgroundColor: 'rgba(5, 150, 105, 0.8)',
+                                    borderColor: '#059669',
+                                    borderWidth: 2,
+                                    borderRadius: 6,
+                                    borderSkipped: false,
+                                    barPercentage: 1.0,
+                                    categoryPercentage: 0.56,
+                                    hoverBackgroundColor: 'rgba(5, 150, 105, 0.9)',
+                                    hoverBorderColor: '#047857',
+                                    hoverBorderWidth: 3
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            animation: {
+                                duration: 1800,
+                                easing: 'easeInOutQuart'
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Project Phases',
+                                        font: {
+                                            size: window.innerWidth < 768 ? 11 : 14,
+                                            weight: '600',
+                                            family: 'Inter'
+                                        },
+                                        color: '#1e293b'
+                                    },
+                                    grid: {
+                                        display: false
+                                    },
+                                    ticks: {
+                                        font: {
+                                            size: window.innerWidth < 768 ? 10 : 12,
+                                            family: 'Inter'
+                                        },
+                                        color: '#64748b'
+                                    },
+                                    border: {
+                                        display: false
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    title: {
+                                        display: true,
+                                        text: 'Progress (%)',
+                                        font: {
+                                            size: window.innerWidth < 768 ? 11 : 14,
+                                            weight: '600',
+                                            family: 'Inter'
+                                        },
+                                        color: '#1e293b'
+                                    },
+                                    grid: {
+                                        display: true,
+                                        color: 'rgba(148, 163, 184, 0.1)',
+                                        drawBorder: false
+                                    },
+                                    ticks: {
+                                        font: {
+                                            size: window.innerWidth < 768 ? 10 : 12,
+                                            family: 'Inter'
+                                        },
+                                        color: '#64748b'
+                                    },
+                                    border: {
+                                        display: false
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    padding: window.innerWidth < 768 ? 8 : 20,
+                                    labels: {
+                                        font: {
+                                            size: window.innerWidth < 768 ? 11 : 14,
+                                            weight: '600',
+                                            family: 'Inter'
+                                        },
+                                        boxWidth: window.innerWidth < 768 ? 14 : 18,
+                                        boxHeight: window.innerWidth < 768 ? 14 : 18,
+                                        borderRadius: 4,
+                                        usePointStyle: true,
+                                        pointStyle: 'rect'
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'EPC Progress: Planned vs Actual',
+                                    font: {
+                                        size: window.innerWidth < 768 ? 14 : 20,
+                                        weight: '700',
+                                        family: 'Inter'
+                                    },
+                                    padding: window.innerWidth < 768 ? 8 : 20,
+                                    color: '#1e293b'
+                                },
+                                tooltip: {
+                                    enabled: true,
+                                    position: 'nearest',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                    titleColor: '#fff',
+                                    bodyColor: '#fff',
+                                    borderColor: '#fff',
+                                    borderWidth: 1,
+                                    cornerRadius: 4,
+                                    displayColors: true,
+                                    titleFont: { size: window.innerWidth < 768 ? 10 : 12 },
+                                    bodyFont: { size: window.innerWidth < 768 ? 9 : 11 },
+                                    padding: window.innerWidth < 768 ? 6 : 12,
+                                    callbacks: {
+                                        label: (context) => `${context.dataset.label}: ${context.raw}%`
+                                    }
+                                },
+                                barValueLabels: {
+                                    color: 'rgba(255, 255, 255, 0.9)'
+                                }
+                            },
+                            layout: { padding: window.innerWidth < 768 ? 5 : 15 }
+                        }
+                    });
+                    epcProgressChartRef.current.chart = epcProgressChart;
+                    chartInstances.push(epcProgressChart);
+                }
+
+                return () => {
+                    window.removeEventListener('resize', handleResize);
+                    chartInstances.forEach(chart => { if (chart && typeof chart.destroy === 'function') chart.destroy(); });
+                    if (statusChartRef.current) statusChartRef.current.chart = null;
+                    if (delayChartRef.current) delayChartRef.current.chart = null;
+                    if (progressCurveChartRef.current) progressCurveChartRef.current.chart = null;
+                    if (engineeringDisciplineChartRef.current) engineeringDisciplineChartRef.current.chart = null;
+                    if (epcProgressChartRef.current) epcProgressChartRef.current.chart = null;
+                };
+            }, [chartData, isLoading, error]);
+
+            const hasDataForCharts = chartData && (Object.keys(chartData.epc_split_completion_data || {}).length > 0 || (chartData.s_curve_data && chartData.s_curve_data.dates && chartData.s_curve_data.dates.length > 0) || (chartData.engineering_disciplines_data && Object.keys(chartData.engineering_disciplines_data).length > 0));
+
+            return React.createElement('div', { className: 'p-4 sm:p-6 bg-white shadow-lg rounded-xl' },
+                React.createElement('h2', { className: 'text-2xl font-bold text-slate-800 mb-6' }, `Charts for: ${projectName}`),
+                isLoading ? React.createElement(LoadingSpinner, { message: "Loading Chart Data..." }) :
+                    error ? React.createElement('p', { className: 'text-center text-red-500 py-10' }, `Error: ${error}`) :
+                        !hasDataForCharts ? (React.createElement('p', { className: 'text-center text-slate-500 py-10' }, 'No task data available to generate charts.')) : (
+                            React.createElement(React.Fragment, null,
+                                React.createElement('div', { className: 'mobile-grid grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-8 lg:mb-10' },
+                                    React.createElement('div', { className: 'chart-card mobile-chart-wrapper mobile-chart-container relative' }, 
+                                        React.createElement(DownloadButton, { chartRef: statusChartRef, chartTitle: 'Task Status Distribution' }),
+                                        React.createElement('canvas', { ref: statusChartRef })
+                                    ),
+                                    React.createElement('div', { className: 'chart-card mobile-chart-wrapper mobile-chart-container relative' }, 
+                                        React.createElement(DownloadButton, { chartRef: delayChartRef, chartTitle: 'Project Delays Analysis' }),
+                                        React.createElement('canvas', { ref: delayChartRef })
+                                    )
+                                ),
+                                React.createElement('div', { className: 'mobile-grid grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-8 lg:mb-10' },
+                                    React.createElement('div', { className: 'chart-card mobile-chart-wrapper mobile-chart-container relative' }, 
+                                        React.createElement(DownloadButton, { chartRef: engineeringDisciplineChartRef, chartTitle: 'Engineering Progress by Discipline' }),
+                                        React.createElement('canvas', { ref: engineeringDisciplineChartRef })
+                                    ),
+                                    React.createElement('div', { className: 'chart-card mobile-chart-wrapper mobile-chart-container relative' }, 
+                                        React.createElement(DownloadButton, { chartRef: progressCurveChartRef, chartTitle: 'Planned vs Actual Progress S-Curve' }),
+                                        React.createElement('canvas', { ref: progressCurveChartRef })
+                                    )
+                                ),
+                                React.createElement('div', { className: 'chart-card mobile-chart-wrapper mobile-chart-container relative mb-8 lg:mb-10' }, 
+                                    React.createElement(DownloadButton, { chartRef: epcProgressChartRef, chartTitle: 'EPC Progress Actual vs Planned' }),
+                                    React.createElement('canvas', { ref: epcProgressChartRef })
+                                )
+                            )
+                        ),
+                React.createElement('div', { className: 'mt-8 text-center' },
+                    React.createElement('button', { onClick: onNavigateBack, className: 'px-6 py-2 bg-slate-600 text-white font-semibold rounded-lg hover:bg-slate-700 transition-colors' }, 'Back to Dashboard')
+                )
+            );
+        };
+
+        const App = () => {
+            const { useState, useEffect, useCallback } = React;
+            const [loggedInUser, setLoggedInUser] = useState(null);
+            const [isLoading, setIsLoading] = useState(true);
+            const [projects, setProjects] = useState([]);
+            const [selectedProject, setSelectedProject] = useState('');
+            const [chartData, setChartData] = useState(null);
+            const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+            // Effect to check authentication on initial load
+            useEffect(() => {
+                const accessToken = localStorage.getItem('access_token');
+                const userData = localStorage.getItem('user_data');
+                
+                if (accessToken && userData) {
+                    try {
+                        // Check if token is expired
+                        if (isTokenExpired(accessToken)) {
+                            handleSessionTimeout();
+                            return;
+                        }
+                        
+                        const authData = JSON.parse(userData);
+                        setLoggedInUser(authData);
+                        if (authData.userType === 'client') {
+                            // For clients, project is fixed
+                            const urlParams = new URLSearchParams(window.location.search);
+                            urlParams.set('project', authData.project);
+                            window.history.replaceState({}, '', `${window.location.pathname}?${urlParams}`);
+                            setSelectedProject(authData.project);
+                        }
+                    } catch (e) {
+                        handleSessionTimeout();
+                    }
+                } else {
+                    // Clean up legacy auth format if present
+                    localStorage.removeItem('aiProjectControlTowerAuth_v2');
+                    window.location.href = '/';
+                }
+
+                // Set up periodic token expiration check (every 30 seconds)
+                const tokenCheckInterval = setInterval(() => {
+                    const token = localStorage.getItem('access_token');
+                    if (isTokenExpired(token)) {
+                        clearInterval(tokenCheckInterval);
+                        handleSessionTimeout();
+                    }
+                }, 30000);
+                
+                return () => clearInterval(tokenCheckInterval);
+            }, []);
+
+            // Effect to fetch projects for admins and set initial project
+            useEffect(() => {
+                if (loggedInUser && loggedInUser.userType !== 'client') {
+                    makeAuthenticatedRequest('/api/projects', { method: 'GET', headers: { 'Content-Type': 'application/json' } })
+                        .then(res => res.json())
+                        .then(data => {
+                            setProjects(data);
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const projectFromUrl = urlParams.get('project');
+                            
+                            if (projectFromUrl && data.some(p => p.name === projectFromUrl)) {
+                                setSelectedProject(projectFromUrl);
+                            } else if (data.length > 0) {
+                                // If no valid project in URL, set to the first in the list and update URL
+                                const defaultProject = data[0].name;
+                                setSelectedProject(defaultProject);
+                                const newUrlParams = new URLSearchParams();
+                                newUrlParams.set('project', defaultProject);
+                                window.history.replaceState({}, '', `${window.location.pathname}?${newUrlParams}`);
+                            }
+                        });
+                }
+            }, [loggedInUser]);
+
+            // Effect to fetch chart data whenever the selected project changes
+            useEffect(() => {
+                if (loggedInUser && selectedProject) {
+                    setIsLoading(true);
+                    makeAuthenticatedRequest(`/api/chart_data?project=${encodeURIComponent(selectedProject)}`, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
+                        .then(res => res.json())
+                        .then(data => setChartData(data))
+                        .catch(err => {
+                            if (err.message === 'Session expired') {
+                                // Session timeout is handled by handleSessionTimeout
+                                return;
+                            }
+                            console.error("Failed to load chart data:", err);
+                        })
+                        .finally(() => setIsLoading(false));
+                }
+            }, [loggedInUser, selectedProject]);
+
+            const handleProjectChange = (event) => {
+                const newProject = event.target.value;
+                setSelectedProject(newProject);
+                // Update the URL to reflect the new selection
+                const urlParams = new URLSearchParams(window.location.search);
+                urlParams.set('project', newProject);
+                window.history.pushState({}, '', `${window.location.pathname}?${urlParams}`);
+            };
+            
+            const handleLogout = () => {
+                const accessToken = localStorage.getItem('access_token');
+                
+                // Call logout API to revoke token on server
+                if (accessToken) {
+                    fetch('/api/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + accessToken
+                        }
+                    }).catch(err => console.error('Logout API error:', err));
+                }
+                
+                // Clear all authentication data from localStorage
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('user_data');
+                // Clean up legacy auth format if present
+                localStorage.removeItem('aiProjectControlTowerAuth_v2');
+                
+                window.location.href = '/';
+            };
+
+            const handleNavigate = useCallback((page) => {
+                if (page === 'home') {
+                    window.location.href = '/home';
+                } else if (page === 'dashboard') {
+                    window.location.href = '/dashboard';
+                }
+                setIsSidebarOpen(false);
+            }, []);
+
+            return React.createElement("div", { className: "min-h-screen bg-slate-100 p-2 sm:p-4 md:p-8 font-sans" },
+                React.createElement("div", {},
+                    React.createElement("div", { className: `fixed inset-0 bg-black bg-opacity-50 z-40 ${isSidebarOpen ? 'block' : 'hidden'}`, onClick: () => setIsSidebarOpen(false) }),
+                    React.createElement("div", { className: `fixed top-0 left-0 h-full bg-slate-800 text-white w-64 p-4 z-50 transform transition-transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}` },
+                        React.createElement('h2', { className: 'text-2xl font-bold mb-8 text-sky-400' }, 'PROTON'),
+                        React.createElement('ul', { className: 'space-y-2' },
+                            React.createElement('li', null, React.createElement('button', { onClick: () => handleNavigate('home'), className: 'w-full text-left flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-700' }, React.createElement(HomeIcon), 'Home')),
+                            React.createElement('li', null, React.createElement('button', { onClick: () => handleNavigate('dashboard'), className: 'w-full text-left flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-700' }, React.createElement(LayoutDashboardIcon), 'Dashboard'))
+                        )
+                    )
+                ),
+                React.createElement("header", { className: "mb-6 p-4 bg-white shadow-md rounded-lg" },
+                    React.createElement("div", { className: "flex justify-between items-center" },
+                        React.createElement("div", { className: "flex items-center space-x-3" },
+                            React.createElement("button", { onClick: () => setIsSidebarOpen(true), className: "p-2 rounded-md hover:bg-slate-100 lg:hidden" }, React.createElement(MenuIcon, { size: 24, className: "text-slate-600" })),
+                            React.createElement("img", { src: '/static/logo.png', alt: "App Logo", className: "h-10 w-auto" }),
+                            React.createElement("h1", { className: "text-xl sm:text-2xl font-bold text-slate-800" }, "Project Analytics")
+                        ),
+                        React.createElement("div", { className: "hidden lg:flex items-center gap-4" },
+                            React.createElement("nav", { className: "flex items-center gap-1" },
+                                React.createElement("a", { href: "/home", className: 'px-4 py-2 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-100' }, "Home"),
+                                React.createElement("a", { href: "/dashboard", className: 'px-4 py-2 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-100' }, "Dashboard")
+                            ),
+                            React.createElement("div", { className: "h-6 w-px bg-slate-200" }),
+                            React.createElement("button", { onClick: handleLogout, className: "px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg flex items-center" }, React.createElement(LogOutIcon, { size: 16, className: "mr-2" }), "Logout")
+                        )
+                    ),
+                    loggedInUser && loggedInUser.userType !== 'client' &&
+                    React.createElement("div", { className: "mt-4 flex justify-center" },
+                        React.createElement("select", {
+                            value: selectedProject,
+                            onChange: handleProjectChange,
+                            className: "w-full sm:w-1/2 p-2 bg-slate-50 text-slate-700 rounded-md border border-slate-300 focus:ring-2 focus:ring-sky-500 outline-none"
+                        },
+                            projects.map(p => React.createElement("option", { key: p.name, value: p.name }, p.name))
+                        )
+                    )
+                ),
+                React.createElement(ChartsPage, {
+                    projectName: selectedProject,
+                    chartData: chartData,
+                    isLoading: isLoading,
+                    error: !chartData && !isLoading ? "Could not load chart data." : null,
+                    onNavigateBack: () => window.location.href = '/dashboard'
+                })
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+
+</html>
